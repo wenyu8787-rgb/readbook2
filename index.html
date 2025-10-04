@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校園閱讀打卡牆 - 記錄你的閱讀旅程</title>
+    <!-- 載入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 使用 Google Font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Noto+Sans+TC:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f7f9fb; /* 淺灰色背景 */
+        }
+        /* 自定義滾動條樣式，讓它看起來更美觀 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* gray-300 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8; /* gray-400 */
+        }
+        /* 隱藏原生箭頭 */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        /* 自定義焦點效果，讓輸入框更突出 */
+        .input-glow:focus {
+            outline: none;
+            border-color: #f87171; /* red-400 */
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.4);
+        }
+        
+        /* Custom CSS for Toggle Switch */
+        .toggle-checkbox {
+            top: 0;
+            right: 0;
+            margin: 0;
+            transition: right 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .toggle-checkbox:checked {
+            right: 1.25rem; /* ~20px */
+        }
+        .toggle-label {
+            background-color: #fca5a5; /* Red-300 */
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #dc2626; /* Red-600 */
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <!-- Header 標題區 (增加漸層效果) -->
+    <header class="text-center mb-8 lg:mb-12">
+        <h1 class="text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-pink-500 mb-2">
+            📚 校園閱讀打卡牆
+        </h1>
+        <p class="text-lg text-gray-600">
+            記錄你的閱讀旅程，分享你的奇思妙想！(個人firebase資料庫)
+        </p>
+    </header>
+
+    <!-- Main Content 主要內容區 -->
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        
+        <!-- 左側: 打卡表單 (Check-in Form) -->
+        <section class="lg:col-span-1">
+            
+            <!-- Admin Configuration Interface (管理介面) -->
+            <div id="adminConfig" class="bg-red-50 p-4 rounded-xl shadow-inner border border-red-200 mb-6 hidden">
+                <h3 class="text-lg font-bold text-red-700 mb-3 flex items-center">
+                    <!-- Icon: Setting Gear -->
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17a.75.75 0 01-1.06 0L8.7 1.95a.75.75 0 10-1.06 1.06L9.43 4.23a.75.75 0 010 1.06L7.64 7.08a.75.75 0 101.06 1.06l1.73-1.73a.75.75 0 011.06 0l1.73 1.73a.75.75 0 101.06-1.06l-1.73-1.73a.75.75 0 010-1.06l1.73-1.73a.75.75 0 10-1.06-1.06L11.49 3.17zM5.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1H6a.5.5 0 01-.5-.5zM5 15.5a.5.5 0 01.5-.5h4a.5.5 0 010 1H5.5a.5.5 0 01-.5-.5z" clip-rule="evenodd" /></svg>
+                    <span>管理員設定與工具</span>
+                </h3>
+                <div class="flex items-center justify-between">
+                    <label for="allowCommentsToggle" class="text-sm font-medium text-red-800">允許新增留言</label>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <!-- Toggle Checkbox: controlled by JS -->
+                        <input type="checkbox" name="allowComments" id="allowCommentsToggle" onchange="handleConfigChange(event)"
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <!-- Toggle Label -->
+                        <label for="allowCommentsToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                
+                <!-- NEW: 資料管理區 -->
+                <div class="mt-4 border-t pt-4 border-red-200">
+                    <h4 class="text-base font-bold text-red-700 mb-2">資料管理</h4>
+                    <div class="space-y-2">
+                        <!-- 匯出資料 -->
+                        <button onclick="handleExportData()" 
+                            class="w-full text-left p-2 bg-red-200 hover:bg-red-300 rounded-lg text-sm text-red-800 font-medium transition duration-150">
+                            💾 匯出資料 (JSON)
+                        </button>
+                        
+                        <!-- 匯入資料 (需要文件選擇) -->
+                        <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="handleImportData(event)">
+                        <button onclick="document.getElementById('importFileInput').click()" 
+                            class="w-full text-left p-2 bg-red-200 hover:bg-red-300 rounded-lg text-sm text-red-800 font-medium transition duration-150">
+                            📤 匯入資料 (JSON)
+                        </button>
+                        
+                        <!-- 清空資料 -->
+                        <button onclick="handleClearDataPrompt()" id="clearDataButton"
+                            class="w-full text-left p-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white font-medium transition duration-150 shadow-md">
+                            🗑️ 清空所有資料
+                        </button>
+                        <!-- 管理員操作訊息顯示區 -->
+                        <p id="adminMessage" class="text-sm mt-1 text-red-600 hidden"></p>
+                    </div>
+                </div>
+                <!-- END NEW -->
+
+            </div>
+            
+            <div class="bg-white p-6 rounded-3xl shadow-2xl border border-red-100 sticky top-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-5 border-b pb-3 border-red-200">我要打卡！</h2>
+                
+                <form id="checkinForm" onsubmit="handleCheckin(event)">
+                    
+                    <!-- 班級輸入 (已修改 placeholder) -->
+                    <div class="mb-4">
+                        <label for="classSelect" class="block text-sm font-medium text-gray-700 mb-1">班級名稱</label>
+                        <input type="text" id="classSelect" required placeholder="請輸入班級名稱 (例如: 301)"
+                            class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow">
+                    </div>
+
+                    <!-- 姓名輸入 (已修改 label) -->
+                    <div class="mb-4">
+                        <label for="nameInput" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                        <input type="text" id="nameInput" required placeholder="請輸入姓名"
+                            class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow">
+                    </div>
+                    
+                    <!-- 書名輸入 -->
+                    <div class="mb-4">
+                        <label for="bookTitle" class="block text-sm font-medium text-gray-700 mb-1">書名</label>
+                        <input type="text" id="bookTitle" required placeholder="輸入或選擇書名"
+                            class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow">
+                    </div>
+
+                    <!-- 頁數範圍 -->
+                    <div class="mb-4 flex space-x-3">
+                        <div class="flex-1">
+                            <label for="startPage" class="block text-sm font-medium text-gray-700 mb-1">從第幾頁</label>
+                            <input type="number" id="startPage" required min="1" placeholder="例如: 1"
+                                class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow">
+                        </div>
+                        <div class="flex-1">
+                            <label for="endPage" class="block text-sm font-medium text-gray-700 mb-1">到第幾頁</label>
+                            <input type="number" id="endPage" required min="1" placeholder="例如: 10"
+                                class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow">
+                        </div>
+                    </div>
+
+                    <!-- 閱讀想法 (500字以內) -->
+                    <div class="mb-4">
+                        <label for="thoughts" class="block text-sm font-medium text-gray-700 mb-1">
+                            閱讀時腦中產生的想法 (500字以內)
+                        </label>
+                        <textarea id="thoughts" required maxlength="500" placeholder="寫下你的小宇宙..."
+                            class="w-full p-2.5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg transition duration-200 input-glow h-24 resize-none"></textarea>
+                    </div>
+
+                    <!-- 我的心情 (Emoji Selector) -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">我的心情</label>
+                        <div id="moodSelector" class="flex flex-wrap gap-2 justify-start">
+                            <!-- Emojis as radio buttons: checked state has a border/ring -->
+                            <input type="radio" id="mood1" name="mood" value="🥰" class="hidden" required>
+                            <label for="mood1" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">🥰</label>
+                            
+                            <input type="radio" id="mood2" name="mood" value="😂" class="hidden">
+                            <label for="mood2" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">😂</label>
+
+                            <input type="radio" id="mood3" name="mood" value="🤔" class="hidden">
+                            <label for="mood3" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">🤔</label>
+                            
+                            <input type="radio" id="mood4" name="mood" value="😭" class="hidden">
+                            <label for="mood4" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">😭</label>
+                            
+                            <input type="radio" id="mood5" name="mood" value="🤩" class="hidden">
+                            <label for="mood5" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">🤩</label>
+
+                            <input type="radio" id="mood6" name="mood" value="😵‍💫" class="hidden">
+                            <label for="mood6" class="text-2xl p-2 rounded-full cursor-pointer hover:bg-red-50 transition duration-150 ring-2 ring-transparent has-[:checked]:ring-red-400 has-[:checked]:bg-red-100">😵‍💫</label>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按鈕 (使用更深的陰影和漸層) -->
+                    <button type="submit" id="submitButton"
+                        class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-3 px-4 rounded-xl hover:from-red-700 hover:to-red-800 transition duration-300 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300">
+                        送出打卡紀錄
+                    </button>
+                    <p id="messageBox" class="text-sm text-center mt-3 text-red-500 hidden"></p>
+                </form>
+            </div>
+        </section>
+
+        <!-- 右側: 閱讀紀錄牆 (Reading Records Wall) -->
+        <section class="lg:col-span-3">
+           <div class="flex justify-between items-baseline mb-5">
+                <h2 class="text-2xl font-bold text-gray-800">大家的閱讀紀錄</h2>
+                <span id="currentUserIdDisplay" class="text-xs font-mono text-gray-500"></span>
+            </div>  
+          
+            <!-- 篩選器 Filters (優化樣式) -->
+            <div class="flex flex-wrap gap-3 mb-6 p-4 bg-white rounded-xl shadow-md border border-gray-200">
+                <!-- 班級篩選下拉選單 (由 JS 填充) -->
+                <select id="classFilterSelect"
+                    class="p-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-red-400 transition duration-150">
+                    <!-- Options will be populated by JS -->
+                </select>
+
+                <!-- NEW: 時間篩選下拉選單 -->
+                <select id="timeFilterSelect"
+                    class="p-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-red-400 transition duration-150">
+                    <option value="all">所有時間</option>
+                    <option value="today">本日</option>
+                    <option value="3days">三日</option>
+                    <option value="thisweek">本週</option>
+                    <option value="2weeks">二週</option>
+                    <option value="thismonth">本月</option>
+                    <option value="6months">半年</option>
+                    <option value="1year">一年</option>
+                </select>
+                
+                <!-- 姓名篩選輸入框 -->
+                <input type="text" id="nameFilterInput" placeholder="依姓名篩選..." 
+                    class="p-2 border border-gray-300 rounded-lg text-sm max-w-40 hover:border-red-400 transition duration-150">
+                <!-- 書名篩選輸入框 -->
+                <input type="text" id="bookTitleFilterInput" placeholder="依書名篩選..." 
+                    class="p-2 border border-gray-300 rounded-lg text-sm max-w-40 hover:border-red-400 transition duration-150">
+                
+                <!-- 排序下拉選單 (已添加 ID 和值) -->
+                <select id="sortSelect"
+                    class="p-2 border border-gray-300 rounded-lg text-sm bg-white ml-auto hover:border-red-400 transition duration-150">
+                    <option value="latest">依最新排序</option>
+                    <option value="likes">依讚數排序</option>
+                </select>
+                
+                <button onclick="clearFilters()" class="bg-gray-200 hover:bg-red-100 text-gray-700 hover:text-red-700 font-medium py-2 px-3 rounded-lg text-sm transition duration-150">
+                    清除篩選
+                </button>
+            </div>
+            
+            <!-- 紀錄列表 Records List -->
+            <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 custom-scrollbar">
+                <!-- Record Cards will be inserted here by JavaScript -->
+                <div class="text-center text-gray-500 p-8 bg-white rounded-xl shadow-lg md:col-span-2" id="loadingIndicator">
+                    載入中... 請稍候。
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- 刪除確認/管理員操作確認模態視窗 (Modal) -->
+    <div id="confirmationModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full transform transition-transform duration-300 scale-100">
+            <h3 class="text-xl font-bold text-red-600 mb-4">確認刪除紀錄</h3>
+            <p class="text-gray-700 mb-6">您確定要永久刪除這條閱讀打卡紀錄嗎？此操作無法復原。</p>
+            <div class="flex justify-end space-x-3">
+                <!-- 注意: cancelDelete 和 confirmDelete 已經被修改為通用的處理函數 -->
+                <button onclick="cancelDelete()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-150 font-medium">
+                    取消
+                </button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-150 font-medium shadow-md">
+                    確認刪除
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新增留言模態視窗 (Modal) -->
+    <div id="commentModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full transform transition-transform duration-300 scale-100">
+            <h3 class="text-xl font-bold text-blue-600 mb-4">新增留言</h3>
+            <p class="text-gray-700 mb-4">請留下您對這篇打卡紀錄的想法或鼓勵！</p>
+            <form id="commentForm" onsubmit="handleCommentSubmit(event)">
+                
+                <!-- 修改: 顯示不可修改的用戶ID (現在顯示完整 ID) -->
+                <div class="mb-4 p-3 bg-gray-100 rounded-lg border border-gray-300">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">您的身份 (完整 ID)</label>
+                    <p id="commentUserIdDisplay" class="text-sm font-mono text-gray-800 break-all"></p>
+                </div>
+                
+                <textarea id="commentText" required maxlength="200" placeholder="最多200字..."
+                    class="w-full p-3 mb-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg resize-none h-24 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="cancelComment()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-150 font-medium">
+                        取消
+                    </button>
+                    <button type="submit" id="commentSubmitButton" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 font-medium shadow-md">
+                        送出留言
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 全文放大/還原模態視窗 (Full Post Modal) - NEW FEATURE -->
+    <div id="fullPostModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-3xl w-full mx-4 lg:mx-auto max-h-[90vh] overflow-y-auto transform transition-transform duration-300 scale-100">
+            <div class="flex justify-between items-start border-b pb-3 mb-4">
+                <h3 id="fullPostTitle" class="text-2xl font-bold text-red-600"></h3>
+                <button onclick="closeFullPostModal()" class="text-gray-400 hover:text-gray-600 transition duration-150 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="fullPostContent" class="space-y-4 text-gray-700">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // 匯入 Firebase 必要的模組 (已移除不再需要的 signInWithCustomToken)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 確保匯入了 arrayRemove, arrayUnion, increment, getDocs
+        import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, doc, setDoc, getDoc, setLogLevel, deleteDoc, arrayUnion, arrayRemove, updateDoc, increment, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 環境與全域變數宣告 ---
+        // 請注意：這個 ADMIN_ID 是一個範例，請替換成您實際的管理員 ID
+        const ADMIN_ID = '00407907563263820026'; 
+
+        // 取得環境提供的應用程式 ID 
+        // 當使用外部 Firebase 時，APP_ID 可以自定義，但為保持路徑一致性，建議保留
+        const APP_ID = 'reading-checkin-app';
+        // 配置文件的路徑，必須在 APP_ID 定義之後
+        const CONFIG_DOC_PATH = `/artifacts/${APP_ID}/public/data/config/general`;
+
+        // Firestore 全域變數
+        let db;
+        let auth;
+        let userId = 'loading';
+        let recordToDeleteId = null; // 儲存待刪除的紀錄 ID
+        let recordToCommentId = null; // 儲存待留言的紀錄 ID
+        let appConfig = { allowComments: true }; // 儲存應用程式配置
+        
+        // 新增全域變數來儲存所有原始紀錄，以便在客戶端進行篩選
+        let allRecords = []; 
+        
+        // NEW: 儲存待處理的管理員動作 (清空/匯入確認)
+        let pendingAdminAction = null; 
+
+        // --- NEW: 連接到您自己的 Firebase ---
+        // 1. 請在此處貼上您從 Firebase 控制台取得的配置物件。
+        // 2. 請確保在 Firebase Authentication 中啟用了 "匿名" 登入方法。
+        // 3. 請將上方 ADMIN_ID 變數的值改為您自己的 Firebase User ID (首次執行後可從瀏覽器控制台找到)。
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtO8S6tCn0CzUwsAAw_SJLqzht-sMh3Ck",
+            authDomain: "readbook-a5313.firebaseapp.com",
+            projectId: "readbook-a5313",
+            storageBucket: "readbook-a5313.appspot.com",
+            messagingSenderId: "592801412325",
+            appId: "1:592801412325:web:f51c1bcd70eae127d0d00c",
+            measurementId: "G-YN39B51QFK"
+        };
+
+        // 檢查並使用 Firebase Config (已註解掉原有的內建配置)
+        // const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (firebaseConfig && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+            try {
+                // 設置日誌級別為 Debug
+                setLogLevel('debug'); 
+                
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // 嘗試設定持久化 (可選，但推薦)
+                setPersistence(auth, browserLocalPersistence).catch((error) => { 
+                    console.error("Error setting persistence:", error);
+                });
+
+                // 處理認證狀態
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Firebase Auth State Changed: Logged in as", userId);
+
+                        // 首次登入後，可以在控制台找到您的 UID 並設定為 ADMIN_ID
+                        console.log("---");
+                        console.log("您的 Firebase User ID 是:", userId);
+                        console.log("請將此 ID 複製並貼到程式碼中的 ADMIN_ID 變數。");
+                        console.log("---");
+
+                    } else {
+                        // 嘗試匿名登入
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (error) {
+                            console.error("Firebase Anonymous Sign-In Error:", error);
+                            // 如果登入失敗，使用隨機 ID 作為匿名用戶標識
+                            userId = crypto.randomUUID();
+                        }
+                    }
+
+                    // 新增: 更新右上角目前使用者ID的顯示
+                    const userIdDisplaySpan = document.getElementById('currentUserIdDisplay');
+                    if (userIdDisplaySpan) {
+                        userIdDisplaySpan.textContent = `當前用戶 ID: ${userId}`;
+                    }
+
+                    
+                    // 無論登入狀態如何，都初始化資料監聽、配置監聽和篩選器
+                    setupRealtimeListener(db);
+                    setupConfigListener(db);
+                    initializeConfig(db);
+                    updateAdminUI(); 
+                    setupFilterListeners(); // <-- 設置篩選器和排序事件監聽器
+                });
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                // 顯示錯誤訊息
+                document.getElementById('loadingIndicator').innerHTML = 'Firebase 連線失敗。請檢查您的 firebaseConfig 是否正確。';
+            }
+        } else {
+            console.error("Firebase Config Missing or is placeholder.");
+            document.getElementById('loadingIndicator').innerHTML = '錯誤：請在程式碼中填寫您的 Firebase 配置信息。';
+        }
+
+        // --- 篩選器事件監聽器設置 ---
+
+        /**
+         * 設置所有篩選器 UI 元素的事件監聽器。
+         */
+        function setupFilterListeners() {
+            // filterAndRender 已經被設置為 window 屬性，可以直接存取
+            const classSelect = document.getElementById('classFilterSelect');
+            const timeSelect = document.getElementById('timeFilterSelect');
+            const sortSelect = document.getElementById('sortSelect'); // <-- 新增: 排序下拉選單
+            const nameInput = document.getElementById('nameFilterInput');
+            const bookInput = document.getElementById('bookTitleFilterInput');
+
+            // 對下拉選單使用 'change' 事件
+            if (classSelect) classSelect.addEventListener('change', window.filterAndRender);
+            if (timeSelect) timeSelect.addEventListener('change', window.filterAndRender);
+            if (sortSelect) sortSelect.addEventListener('change', window.filterAndRender); // <-- 新增: 排序監聽
+            
+            // 對輸入框使用 'input' 事件進行實時篩選
+            if (nameInput) nameInput.addEventListener('input', window.filterAndRender);
+            if (bookInput) bookInput.addEventListener('input', window.filterAndRender);
+            
+            console.log("Filter listeners set up.");
+        }
+
+
+        // --- Firestore 核心功能 ---
+        
+        // 公共資料路徑：/artifacts/{appId}/public/data/reading_checkins (讓所有使用者可見)
+        const getCollectionPath = () => `/artifacts/${APP_ID}/public/data/reading_checkins`;
+
+
+        /**
+         * 設置實時數據監聽 (onSnapshot)
+         * @param {Firestore} db - Firestore 實例
+         */
+        function setupRealtimeListener(db) {
+            if (!db) return;
+
+            const collectionRef = collection(db, getCollectionPath());
+            const q = query(collectionRef); 
+
+            console.log("Setting up real-time listener for:", getCollectionPath());
+
+            onSnapshot(q, (snapshot) => {
+                const records = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Firestore Timestamp 轉換為 JavaScript Date
+                    const timestampDate = data.timestamp ? data.timestamp.toDate() : null; 
+                    
+                    records.push({
+                        id: doc.id,
+                        ...data,
+                        // 儲存原始 Date 物件，用於篩選和排序
+                        timestampDate: timestampDate, 
+                        // 儲存格式化字串，用於顯示
+                        timestampStr: timestampDate ? timestampDate.toLocaleString('zh-TW', { hour12: false }) : 'N/A',
+                        // 確保 likedBy 陣列存在
+                        likedBy: data.likedBy || [],
+                        // 確保 comments 陣列存在
+                        comments: data.comments || [], 
+                        // 確保 likes 數字存在
+                        likes: data.likes || 0,
+                    });
+                });
+                
+                // 儲存原始數據並觸發篩選與渲染
+                allRecords = records;
+                
+                // 根據當前所有紀錄更新班級篩選下拉選單
+                populateClassFilter(allRecords); 
+                
+                filterAndRender(); 
+                
+            }, (error) => {
+                console.error("Error listening to Firestore:", error);
+                document.getElementById('loadingIndicator').innerHTML = '載入紀錄失敗。';
+            });
+        }
+        
+        // --- 篩選功能邏輯 ---
+        
+        /**
+         * 根據紀錄列表更新班級篩選下拉選單。
+         * @param {Array<Object>} records - 所有閱讀打卡紀錄
+         */
+        function populateClassFilter(records) {
+            const selectElement = document.getElementById('classFilterSelect');
+            if (!selectElement) return;
+
+            // 1. 取得當前選中的值 (以便在重新生成列表後保持選擇)
+            const currentValue = selectElement.value;
+
+            // 2. 找出所有不重複的班級名稱
+            const uniqueClasses = new Set();
+            records.forEach(record => {
+                if (record.userClass && record.userClass.trim() !== '') {
+                    uniqueClasses.add(record.userClass.trim());
+                }
+            });
+            
+            // 3. 清空並重建選項
+            selectElement.innerHTML = '';
+            
+            // 預設選項
+            let optionsHtml = `<option value="">所有班級</option>`;
+            
+            // 排序班級名稱 (按數字和字母順序)
+            const sortedClasses = Array.from(uniqueClasses).sort((a, b) => a.localeCompare(b, 'zh-TW', { numeric: true }));
+
+            sortedClasses.forEach(className => {
+                // 如果選項值與當前值匹配，則保留 selected 屬性
+                const selectedAttr = (className === currentValue) ? 'selected' : '';
+                optionsHtml += `<option value="${className}" ${selectedAttr}>${className}</option>`;
+            });
+
+            selectElement.innerHTML = optionsHtml;
+            
+            // 如果舊的值不存在於新列表，則確保下拉選單重置為 "所有班級"
+            if (currentValue && !uniqueClasses.has(currentValue)) {
+                 selectElement.value = "";
+            }
+        }
+
+        /**
+         * 根據時間範圍篩選值計算截止日期 (最小允許日期)。
+         * @param {string} filterValue - 篩選器選擇的值 (e.g., 'today', '3days')
+         * @returns {Date} 截止日期 Date 物件。
+         */
+        function getCutoffDate(filterValue) {
+            const now = new Date();
+            const cutoff = new Date(now);
+
+            switch (filterValue) {
+                case 'today':
+                    // 本日: 設定為今天 00:00:00
+                    cutoff.setHours(0, 0, 0, 0);
+                    break;
+                case '3days':
+                    // 三日: 減去 3 天
+                    cutoff.setDate(now.getDate() - 3);
+                    break;
+                case 'thisweek':
+                    // 本週: 設定為本週的星期一 00:00:00
+                    // 0=週日, 1=週一... 6=週六
+                    const day = now.getDay() || 7; // 將週日(0)轉為 7
+                    cutoff.setDate(now.getDate() - day + 1); 
+                    cutoff.setHours(0, 0, 0, 0);
+                    break;
+                case '2weeks':
+                    // 二週: 減去 14 天
+                    cutoff.setDate(now.getDate() - 14);
+                    break;
+                case 'thismonth':
+                    // 本月: 設定為本月 1 號 00:00:00
+                    cutoff.setDate(1);
+                    cutoff.setHours(0, 0, 0, 0);
+                    break;
+                case '6months':
+                    // 半年: 減去 6 個月
+                    cutoff.setMonth(now.getMonth() - 6);
+                    break;
+                case '1year':
+                    // 一年: 減去 12 個月
+                    cutoff.setFullYear(now.getFullYear() - 1);
+                    break;
+                case 'all':
+                default:
+                    // 所有時間: 返回一個非常早的日期
+                    return new Date(0); 
+            }
+            return cutoff;
+        }
+
+
+        /**
+         * 根據當前篩選條件過濾 allRecords 並呼叫 renderRecords 渲染結果。
+         */
+        window.filterAndRender = function() {
+            // 1. 取得篩選值
+            const nameFilter = (document.getElementById('nameFilterInput')?.value || '').toLowerCase().trim();
+            const bookFilter = (document.getElementById('bookTitleFilterInput')?.value || '').toLowerCase().trim();
+            const classFilter = (document.getElementById('classFilterSelect')?.value || '').trim(); 
+            const timeFilter = (document.getElementById('timeFilterSelect')?.value || 'all').trim(); 
+            // <-- NEW: 取得排序偏好
+            const sortPreference = (document.getElementById('sortSelect')?.value || 'latest').trim(); 
+
+            let filteredRecords = allRecords;
+            
+            // 2. 應用班級篩選 (精確匹配)
+            if (classFilter) {
+                filteredRecords = filteredRecords.filter(record => 
+                    record.userClass && record.userClass.trim() === classFilter 
+                );
+            }
+
+            // 3. 應用姓名篩選 (不區分大小寫)
+            if (nameFilter) {
+                filteredRecords = filteredRecords.filter(record => 
+                    (record.userName || '').toLowerCase().includes(nameFilter)
+                );
+            }
+            
+            // 4. 應用書名篩選 (不區分大小寫)
+            if (bookFilter) {
+                filteredRecords = filteredRecords.filter(record => 
+                    (record.bookTitle || '').toLowerCase().includes(bookFilter)
+                );
+            }
+            
+            // 5. 應用時間篩選 (使用原始 Date 物件比較)
+            if (timeFilter !== 'all') {
+                const cutoffDate = getCutoffDate(timeFilter);
+                filteredRecords = filteredRecords.filter(record => 
+                    record.timestampDate && record.timestampDate >= cutoffDate
+                );
+            }
+
+            // 6. 渲染最終過濾後的列表，並傳入排序偏好
+            renderRecords(filteredRecords, sortPreference); 
+        }
+
+        // --- 管理配置功能 ---
+
+        /**
+         * 設置應用程式配置的實時監聽器 
+         * @param {Firestore} db - Firestore 實例
+         */
+        function setupConfigListener(db) {
+            if (!db) return;
+            
+            // 監聽單一文件
+            const configDocRef = doc(db, CONFIG_DOC_PATH);
+
+            onSnapshot(configDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    appConfig = docSnap.data();
+                    console.log("App config loaded:", appConfig);
+                } else {
+                    console.log("Config document not found. Using default config.");
+                    appConfig = { allowComments: true };
+                }
+                
+                // 更新 Admin UI 狀態 (如果當前用戶是管理員)
+                updateAdminUI();
+                // 觸發重新渲染以根據新的配置更新留言按鈕狀態
+                filterAndRender(); 
+            }, (error) => {
+                console.error("Error listening to Config:", error);
+            });
+        }
+
+        /**
+         * 初始化 Config 文件 (如果不存在) 
+         */
+        async function initializeConfig(db) {
+            if (!db) return;
+            const configDocRef = doc(db, CONFIG_DOC_PATH);
+            try {
+                const docSnap = await getDoc(configDocRef);
+                if (!docSnap.exists()) {
+                    await setDoc(configDocRef, {
+                        allowComments: true
+                    });
+                    console.log("Initialized default config.");
+                }
+            } catch (e) {
+                console.error("Error initializing config document:", e);
+            }
+        }
+
+        /**
+         * 更新 Admin UI 狀態並設置事件監聽器 
+         */
+        function updateAdminUI() {
+            const adminConfigDiv = document.getElementById('adminConfig');
+            const allowCommentsToggle = document.getElementById('allowCommentsToggle');
+
+            // 1. 顯示管理介面 (如果當前用戶是管理員)
+            if (userId === ADMIN_ID) {
+                adminConfigDiv.classList.remove('hidden');
+                allowCommentsToggle.checked = appConfig.allowComments;
+            } else {
+                adminConfigDiv.classList.add('hidden');
+            }
+        }
+
+        /**
+         * 處理管理員配置變更 
+         */
+        window.handleConfigChange = async (event) => {
+            if (!db || userId !== ADMIN_ID) return;
+
+            const newStatus = event.target.checked;
+            const configDocRef = doc(db, CONFIG_DOC_PATH);
+            
+            try {
+                await updateDoc(configDocRef, {
+                    allowComments: newStatus
+                });
+                console.log("Config updated: allowComments =", newStatus);
+            } catch (e) {
+                console.error("Error updating config:", e);
+                // 如果更新失敗，將 UI 狀態還原
+                event.target.checked = !newStatus; 
+            }
+        }
+        
+        // --- 隱藏/顯示切換功能 ---
+        
+        /**
+         * 處理記錄的隱藏/顯示切換功能 (僅限管理員)
+         * @param {string} recordId - 紀錄文件 ID
+         * @param {boolean} currentStatus - 該紀錄目前的隱藏狀態
+         */
+        window.handleToggleVisibility = async (recordId, currentStatus) => {
+            if (!db || userId === 'loading' || userId !== ADMIN_ID) {
+                console.warn("Permission denied. Only admins can toggle visibility.");
+                return;
+            }
+            
+            const docRef = doc(db, getCollectionPath(), recordId);
+            // newStatus: 如果當前是隱藏(true)，則新狀態是顯示(false)
+            const newStatus = !currentStatus; 
+
+            try {
+                await updateDoc(docRef, {
+                    hidden: newStatus
+                });
+                console.log(`Record ${recordId} visibility toggled to hidden: ${newStatus}`);
+            } catch (e) {
+                console.error("Error toggling visibility: ", e);
+            }
+        };
+
+
+        // --- 現有功能修改 ---
+
+        /**
+         * 處理打卡提交 (新增 likedBy 欄位)
+         */
+        window.handleCheckin = async (event) => {
+            event.preventDefault();
+
+            const button = document.getElementById('submitButton');
+            const messageBox = document.getElementById('messageBox');
+            messageBox.classList.add('hidden');
+            button.disabled = true;
+            button.textContent = '送出中...';
+
+            const form = event.target;
+            
+            // 檢查頁數範圍
+            const startPage = parseInt(form.startPage.value);
+            const endPage = parseInt(form.endPage.value);
+            if (endPage < startPage) {
+                messageBox.textContent = '結束頁碼不能小於開始頁碼。';
+                messageBox.classList.remove('hidden', 'text-green-600');
+                messageBox.classList.add('text-red-500');
+                button.disabled = false;
+                button.textContent = '送出打卡紀錄';
+                return;
+            }
+
+            const newRecord = {
+                userId: userId, // 當前使用者 ID (用於區分誰按讚或留言)
+                userName: form.nameInput.value,
+                userClass: form.classSelect.value, // 從新的 input 欄位讀取
+                bookTitle: form.bookTitle.value,
+                startPage: startPage,
+                endPage: endPage,
+                thoughts: form.thoughts.value,
+                moodEmoji: form.mood.value,
+                rating: 5, // 默認為 5 星
+                likes: 0,
+                comments: [], // 初始化留言陣列
+                likedBy: [], // <-- 初始化按讚用戶 ID 陣列
+                hidden: false, // 預設為顯示
+                timestamp: serverTimestamp() // 使用 Firestore 服務器時間戳
+            };
+
+            if (!db) {
+                console.error("Firestore not initialized.");
+                messageBox.textContent = '錯誤：應用程式未準備好。';
+                messageBox.classList.remove('hidden');
+                button.disabled = false;
+                button.textContent = '送出打卡紀錄';
+                return;
+            }
+
+            try {
+                // 將紀錄新增到公共集合中
+                const docRef = await addDoc(collection(db, getCollectionPath()), newRecord);
+                console.log("Document written with ID: ", docRef.id);
+
+                messageBox.textContent = '打卡成功！您的紀錄已發布。';
+                messageBox.classList.remove('hidden', 'text-red-500');
+                messageBox.classList.add('text-green-600');
+                form.reset(); // 清空表單
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                messageBox.textContent = '打卡失敗，請檢查連線。';
+                messageBox.classList.remove('hidden', 'text-green-600');
+                messageBox.classList.add('text-red-500');
+            } finally {
+                button.disabled = false;
+                button.textContent = '送出打卡紀錄';
+            }
+        };
+
+        /**
+         * 處理單一用戶點讚/取消點讚功能 (修正為 Like/Unlike Toggle)
+         */
+        window.handleLike = async (recordId) => {
+            if (!db || userId === 'loading') {
+                 console.warn("Firestore not ready or user ID loading.");
+                 return;
+            }
+            
+            const docRef = doc(db, getCollectionPath(), recordId);
+
+            try {
+                // 1. 取得最新資料
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) return;
+                const recordData = docSnap.data();
+
+                // 確保 likedBy 存在且是陣列
+                const likedBy = recordData.likedBy || [];
+                const hasLiked = likedBy.includes(userId);
+
+                let updatePayload = {};
+
+                if (hasLiked) {
+                    // 執行取消點讚 (Unlike)
+                    updatePayload = {
+                        likes: increment(-1), // 點讚數減一
+                        likedBy: arrayRemove(userId) // 從陣列中移除用戶 ID
+                    };
+                    console.log(`User ${userId} unliked record ${recordId}.`);
+                } else {
+                    // 執行點讚 (Like)
+                    updatePayload = {
+                        likes: increment(1), // 點讚數加一
+                        likedBy: arrayUnion(userId) // 將用戶 ID 加入陣列
+                    };
+                    console.log(`User ${userId} liked record ${recordId}.`);
+                }
+
+                // 2. 原子性更新
+                await updateDoc(docRef, updatePayload);
+                
+            } catch (e) {
+                console.error("LIKE_TOGGLE_ERROR: Failed to update like status. Reason:", e);
+                // 可選：顯示錯誤訊息給用戶
+            }
+        };
+
+
+        // --- 紀錄刪除功能模態視窗邏輯 (用於刪除整個打卡紀錄) ---
+        
+        /**
+         * 顯示確認刪除的模態視窗
+         * @param {string} recordId - 紀錄文件 ID
+         */
+        window.handleDelete = (recordId) => {
+            if (userId !== ADMIN_ID) {
+                console.warn("Permission denied. Only admins can delete records.");
+                return;
+            }
+            recordToDeleteId = recordId;
+            
+            // 重設 Modal 內容為單筆刪除
+            document.querySelector('#confirmationModal h3').textContent = '確認刪除紀錄';
+            document.querySelector('#confirmationModal p').textContent = '您確定要永久刪除這條閱讀打卡紀錄嗎？此操作無法復原。';
+            document.querySelector('#confirmationModal button:last-child').textContent = '確認刪除';
+            pendingAdminAction = null; // 清除其他操作
+            
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        };
+        
+        
+        // --- NEW: 管理資料功能 (匯出、匯入、清空) ---
+
+        /**
+         * 顯示管理員操作訊息
+         * @param {string} message - 顯示的內容
+         * @param {string} type - 訊息類型 ('success', 'error', 'info')
+         */
+        function showAdminMessage(message, type = 'info') {
+            const msgBox = document.getElementById('adminMessage');
+            msgBox.textContent = message;
+            msgBox.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-blue-600');
+            
+            let colorClass = 'text-blue-600';
+            if (type === 'error') colorClass = 'text-red-600';
+            if (type === 'success') colorClass = 'text-green-600';
+            
+            msgBox.classList.add(colorClass);
+            msgBox.classList.remove('hidden');
+            
+            setTimeout(() => {
+                msgBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        /**
+         * 處理資料匯出 (僅限管理員)
+         */
+        window.handleExportData = async () => {
+            if (userId !== ADMIN_ID || !db) {
+                showAdminMessage('權限不足或資料庫未準備好。', 'error');
+                return;
+            }
+
+            showAdminMessage('正在匯出資料...', 'info');
+            
+            try {
+                const recordsRef = collection(db, getCollectionPath());
+                const snapshot = await getDocs(recordsRef);
+                
+                const dataToExport = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // 將 Firestore Timestamp 轉換為 ISO String 以便匯出和匯入
+                    const timestampStr = data.timestamp ? data.timestamp.toDate().toISOString() : null;
+                    dataToExport.push({
+                        id: doc.id,
+                        ...data,
+                        timestamp: timestampStr // 使用 ISO String
+                    });
+                });
+
+                // 建立 JSON 檔案並下載
+                const jsonString = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reading_checkins_export_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showAdminMessage(`成功匯出 ${dataToExport.length} 筆紀錄。`, 'success');
+
+            } catch (e) {
+                console.error("Export Error:", e);
+                showAdminMessage('匯出資料失敗。', 'error');
+            }
+        };
+
+        /**
+         * 處理資料匯入 (僅限管理員)
+         */
+        window.handleImportData = async (event) => {
+            if (userId !== ADMIN_ID || !db) {
+                showAdminMessage('權限不足或資料庫未準備好。', 'error');
+                return;
+            }
+
+            const file = event.target.files[0];
+            if (!file) {
+                // 清空 input 讓下次點擊可以再次觸發 onchange
+                event.target.value = ''; 
+                return;
+            }
+
+            showAdminMessage('正在讀取檔案...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const jsonText = e.target.result;
+                    const recordsToImport = JSON.parse(jsonText);
+
+                    if (!Array.isArray(recordsToImport)) {
+                        showAdminMessage('JSON 檔案格式錯誤，應為紀錄陣列。', 'error');
+                        return;
+                    }
+
+                    if (recordsToImport.length === 0) {
+                         showAdminMessage('JSON 檔案中沒有找到任何紀錄。', 'error');
+                        return;
+                    }
+
+                    // 警告: 匯入會覆蓋現有資料 (使用 Promise 等待 Modal 確認)
+                    const isConfirmed = await handleImportConfirmation();
+                    if (!isConfirmed) {
+                        showAdminMessage('匯入已取消。', 'info');
+                        // 清空 input 讓下次點擊可以再次觸發 onchange
+                        event.target.value = '';
+                        return;
+                    }
+                    
+                    showAdminMessage(`正在清空舊資料並匯入 ${recordsToImport.length} 筆新紀錄...`, 'info');
+
+                    // 1. 清空舊資料
+                    await clearAllRecords(false); // 不顯示訊息
+
+                    // 2. 匯入新資料
+                    let importCount = 0;
+                    const recordsRef = collection(db, getCollectionPath());
+                    
+                    for (const record of recordsToImport) {
+                        // 必須移除 'id' 欄位，否則會作為一般欄位儲存
+                        const { id, ...data } = record; 
+                        
+                        // 處理時間戳：將 ISO String 轉換為 Firestore Timestamp (使用 Date 物件)
+                        let timestampValue = serverTimestamp();
+                        if (data.timestamp) {
+                            try {
+                                const date = new Date(data.timestamp);
+                                if (!isNaN(date.getTime())) {
+                                     // 使用 Date 物件，Firestore 會自動轉換為 Timestamp
+                                    timestampValue = date; 
+                                }
+                            } catch (timeError) {
+                                console.warn("Invalid timestamp in import data, using server timestamp.");
+                            }
+                        }
+                        
+                        // 使用 addDoc 讓 Firestore 生成新的 ID
+                        await addDoc(recordsRef, {
+                            ...data,
+                            timestamp: timestampValue
+                        });
+                        importCount++;
+                    }
+
+                    showAdminMessage(`成功匯入 ${importCount} 筆紀錄！`, 'success');
+                    
+                } catch (e) {
+                    console.error("Import Error:", e);
+                    showAdminMessage('匯入資料失敗：' + e.message, 'error');
+                } finally {
+                     // 清空 input 讓下次點擊可以再次觸發 onchange
+                    event.target.value = ''; 
+                }
+            };
+            reader.readAsText(file);
+        };
+        
+        /**
+         * 處理匯入前的確認 (使用現有的 Modal 結構)
+         */
+        function handleImportConfirmation() {
+            return new Promise((resolve) => {
+                pendingAdminAction = {
+                    type: 'import',
+                    resolve: resolve
+                };
+                const modal = document.getElementById('confirmationModal');
+                // 臨時修改 Modal 內容
+                document.querySelector('#confirmationModal h3').textContent = '⚠️ 確認匯入資料';
+                document.querySelector('#confirmationModal p').textContent = '匯入將會清除所有現有紀錄並寫入新資料。您確定要繼續嗎？';
+                document.querySelector('#confirmationModal button:last-child').textContent = '確認匯入';
+                document.querySelector('#confirmationModal button:last-child').classList.replace('bg-red-600', 'bg-blue-600');
+                document.querySelector('#confirmationModal button:last-child').classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+                
+                modal.classList.remove('hidden');
+            });
+        }
+
+        /**
+         * 提示清空資料 (使用現有的 Modal 結構)
+         */
+        window.handleClearDataPrompt = () => {
+            if (userId !== ADMIN_ID || !db) {
+                showAdminMessage('權限不足或資料庫未準備好。', 'error');
+                return;
+            }
+            
+            pendingAdminAction = {
+                type: 'clear',
+                resolve: null // Not using promise resolve here, but keeping structure consistent
+            };
+            
+            const modal = document.getElementById('confirmationModal');
+            // 臨時修改 Modal 內容
+            document.querySelector('#confirmationModal h3').textContent = '🚨 確認清空所有資料';
+            document.querySelector('#confirmationModal p').textContent = '此操作將**永久刪除**所有閱讀打卡紀錄。此動作無法復原！您確定要清空嗎？';
+            document.querySelector('#confirmationModal button:last-child').textContent = '確認清空';
+            document.querySelector('#confirmationModal button:last-child').classList.replace('bg-blue-600', 'bg-red-600');
+            document.querySelector('#confirmationModal button:last-child').classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+            
+            modal.classList.remove('hidden');
+        };
+
+        /**
+         * 核心清空所有紀錄邏輯
+         * @param {boolean} showMsg - 是否顯示成功/失敗訊息 (匯入時不需要顯示)
+         */
+        async function clearAllRecords(showMsg = true) {
+            if (userId !== ADMIN_ID || !db) {
+                if(showMsg) showAdminMessage('權限不足。', 'error');
+                return false;
+            }
+
+            if(showMsg) showAdminMessage('正在清空所有紀錄 (請勿關閉視窗)...', 'error');
+            
+            try {
+                const recordsRef = collection(db, getCollectionPath());
+                const snapshot = await getDocs(recordsRef);
+                
+                let deleteCount = 0;
+                
+                for (const doc of snapshot.docs) {
+                     await deleteDoc(doc.ref);
+                     deleteCount++;
+                }
+                
+                if(showMsg) showAdminMessage(`成功清空所有 ${deleteCount} 筆紀錄。`, 'success');
+                return true;
+
+            } catch (e) {
+                console.error("Clear Data Error:", e);
+                if(showMsg) showAdminMessage('清空資料失敗，請檢查資料庫連線。', 'error');
+                return false;
+            }
+        }
+        
+        // --- NEW: 通用 Modal 取消和確認處理 (覆蓋原有的) ---
+
+        /**
+         * 通用的取消操作 (還原 Modal 內容)
+         */
+        window.cancelDelete = () => {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            recordToDeleteId = null; 
+            
+            // 如果有未完成的 Admin Action (如匯入確認), 則解析為 false
+            if (pendingAdminAction && pendingAdminAction.resolve) {
+                pendingAdminAction.resolve(false);
+            }
+            
+            // 還原 Modal 內容為單筆刪除的預設值
+            document.querySelector('#confirmationModal h3').textContent = '確認刪除紀錄';
+            document.querySelector('#confirmationModal p').textContent = '您確定要永久刪除這條閱讀打卡紀錄嗎？此操作無法復原。';
+            document.querySelector('#confirmationModal button:last-child').textContent = '確認刪除';
+            document.querySelector('#confirmationModal button:last-child').classList.replace('bg-blue-600', 'bg-red-600');
+            document.querySelector('#confirmationModal button:last-child').classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+            pendingAdminAction = null; 
+        };
+
+        /**
+         * 通用的確認操作 (處理單筆刪除、清空或匯入)
+         */
+        window.confirmDelete = async () => {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            
+            if (pendingAdminAction && pendingAdminAction.type === 'clear') {
+                // 執行清空資料
+                await clearAllRecords(true);
+                
+            } else if (pendingAdminAction && pendingAdminAction.type === 'import') {
+                // 處理匯入確認
+                if (pendingAdminAction.resolve) {
+                    pendingAdminAction.resolve(true); // 繼續執行匯入
+                }
+                
+            } else if (recordToDeleteId) {
+                // 執行單筆紀錄刪除
+                const docRef = doc(db, getCollectionPath(), recordToDeleteId);
+                try {
+                    await deleteDoc(docRef);
+                    console.log("Document successfully deleted:", recordToDeleteId);
+                    recordToDeleteId = null; 
+                    showAdminMessage('單筆紀錄刪除成功。', 'success');
+                } catch (e) {
+                    console.error("Error removing document: ", e);
+                    showAdminMessage('刪除紀錄失敗。', 'error');
+                }
+                
+            } else {
+                console.error("No action or record selected for confirmation.");
+            }
+            
+            // 處理完成後，呼叫取消以重設狀態和 Modal 內容
+            cancelDelete();
+        };
+
+        // --- 留言功能模態視窗邏輯 (用於新增留言) ---
+
+
+        /**
+         * 顯示新增留言的模態視窗
+         * @param {string} recordId - 紀錄文件 ID
+         */
+        window.showCommentModal = (recordId) => {
+            if (!appConfig.allowComments) {
+                console.warn("留言功能目前已被管理員關閉。");
+                const messageBox = document.getElementById('messageBox');
+                messageBox.textContent = '留言功能目前已被管理員關閉。';
+                messageBox.classList.remove('hidden', 'text-green-600');
+                messageBox.classList.add('text-red-500');
+                setTimeout(() => messageBox.classList.add('hidden'), 3000);
+                return;
+            }
+            
+            recordToCommentId = recordId;
+            document.getElementById('commentText').value = ''; // 清空上一次的內容
+            
+            // --- 顯示不可修改的用戶 ID (現在顯示完整 ID) ---
+            const idDisplay = document.getElementById('commentUserIdDisplay');
+            // 顯示完整的用戶 ID
+            idDisplay.textContent = `ID: ${userId}`; 
+            // --- 結束新增 ---
+            
+            document.getElementById('commentModal').classList.remove('hidden');
+        };
+
+        /**
+         * 取消留言，隱藏模態視窗
+         */
+        window.cancelComment = () => {
+            recordToCommentId = null;
+            document.getElementById('commentModal').classList.add('hidden');
+        };
+
+
+        /**
+         * 處理留言提交並寫入 Firestore
+         */
+        window.handleCommentSubmit = async (event) => {
+            event.preventDefault();
+            
+            if (!appConfig.allowComments) {
+                console.error("留言功能已被管理員關閉，無法提交。");
+                window.cancelComment();
+                return;
+            }
+            
+            // 嚴格的 ID 檢查
+            if (!recordToCommentId || !db) {
+                console.error("無法留言: 紀錄 ID 遺失或 Firestore 未初始化。");
+                window.cancelComment(); 
+                return;
+            }
+
+            const button = document.getElementById('commentSubmitButton');
+            const commentText = document.getElementById('commentText').value.trim();
+            
+            if (commentText.length === 0) {
+                // 如果留言為空，不做任何操作
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = '送出中...';
+
+            const docRef = doc(db, getCollectionPath(), recordToCommentId); 
+            
+            // 留言結構只包含 userId, text, timestamp
+            const newComment = {
+                userId: userId,
+                text: commentText,
+                // 使用 ISO 字串作為唯一的時間戳/識別碼
+                timestamp: new Date().toISOString() 
+            };
+
+            try {
+                // 使用 arrayUnion 將新的留言物件原子性地添加到 comments 陣列中
+                await updateDoc(docRef, {
+                    comments: arrayUnion(newComment)
+                });
+                
+                console.log("Comment successfully added to:", recordToCommentId);
+                
+                // 成功後清除 ID 和關閉 modal
+                window.cancelComment(); 
+
+            } catch (e) {
+                console.error("Error adding comment: ", e);
+                // 失敗時也清除 ID 和關閉 modal
+                window.cancelComment();
+            } finally {
+                // 最後只重置按鈕狀態
+                button.disabled = false;
+                button.textContent = '送出留言';
+            }
+        };
+
+        // --- 刪除單條留言的功能 (僅限管理員) ---
+        
+        /**
+         * 處理刪除單條留言的功能 (僅限管理員)
+         * @param {string} recordId - 留言所在的打卡紀錄文件 ID
+         * @param {string} commentTimestamp - 留言物件的唯一時間戳 (ISO 字串)
+         */
+        window.handleDeleteComment = async (recordId, commentTimestamp) => {
+            if (!db || userId !== ADMIN_ID) {
+                console.warn("Permission denied. Only admins can delete comments.");
+                return;
+            }
+            
+            // NOTE: 因為禁止使用 alert/confirm，管理員點擊後將直接執行刪除。
+            // 在實際應用中，應使用自定義模態視窗來確認刪除。
+
+            const docRef = doc(db, getCollectionPath(), recordId);
+
+            try {
+                // 1. 讀取當前的紀錄
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    console.error("Record not found for comment deletion.");
+                    return;
+                }
+                
+                const recordData = docSnap.data();
+                
+                // 2. 過濾掉要刪除的留言
+                const existingComments = recordData.comments || [];
+                
+                const updatedComments = existingComments.filter(comment => {
+                    // 比較 ISO 格式的 timestamp 字串，找到匹配的即刪除
+                    return comment.timestamp !== commentTimestamp; 
+                });
+
+                // 3. 將更新後的陣列寫回
+                await updateDoc(docRef, {
+                    comments: updatedComments
+                });
+                
+                showAdminMessage('留言刪除成功。', 'success');
+                console.log(`Comment with timestamp ${commentTimestamp} deleted from record ${recordId}.`);
+
+            } catch (e) {
+                console.error("Error deleting comment: ", e);
+                showAdminMessage('刪除留言失敗。', 'error');
+            }
+        };
+
+
+        // --- NEW: 全文放大模態視窗邏輯 ---
+
+        /**
+         * 顯示全文檢視模態視窗
+         * @param {string} recordId - 紀錄文件 ID
+         */
+        window.showFullPostModal = (recordId) => {
+            // 查找紀錄
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) {
+                console.error("Record not found:", recordId);
+                return;
+            }
+
+            // 填充標題
+            const modalTitle = document.getElementById('fullPostTitle');
+            modalTitle.textContent = `《${record.bookTitle}》 - 閱讀紀錄`;
+
+            // 填充內容
+            const contentDiv = document.getElementById('fullPostContent');
+            
+            // 星星渲染 (與卡片渲染邏輯一致)
+            const rating = record.rating || 5;
+            const starsHtml = Array(5).fill(0).map((_, i) => 
+                `<svg class="w-5 h-5 ${i < rating ? 'text-yellow-400' : 'text-gray-300'} fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.487 7.234l6.561-.955L10 1l2.952 5.279 6.561.955-4.758 4.011 1.123 6.545z"/></svg>`
+            ).join('');
+
+            // 格式化留言區塊
+            let commentsDisplayHtml = '';
+            if (record.comments && record.comments.length > 0) {
+                const sortedComments = [...record.comments].sort((a, b) => {
+                    const getTimeInMs = (comment) => typeof comment.timestamp === 'string' ? new Date(comment.timestamp).getTime() : 0;
+                    return getTimeInMs(b) - getTimeInMs(a);
+                });
+
+                commentsDisplayHtml = `
+                    <div class="pt-4 border-t border-gray-200">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">留言區 (${sortedComments.length}):</h4>
+                        <div class="space-y-3">
+                            ${sortedComments.map(comment => {
+                                // --- NEW: 顯示完整 ID ---
+                                const commenterId = comment.userId || 'unknown';
+                                const displayCommenterId = commenterId; // 完整 ID
+                                // --- 結束 NEW ---
+                                
+                                let commentTime = 'N/A';
+                                if (comment.timestamp && new Date(comment.timestamp).getTime() > 0) {
+                                    commentTime = new Date(comment.timestamp).toLocaleString('zh-TW', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                }
+                                
+                                return `
+                                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                        <p class="text-xs font-semibold text-blue-800">用戶 ID: ${displayCommenterId} 
+                                            <span class="font-normal text-gray-500 ml-2">${commentTime}</span>
+                                        </p>
+                                        <p class="text-base text-gray-800 mt-1 whitespace-pre-wrap">${comment.text}</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 確保 record.userId 是一個字符串，如果為 null/undefined，則使用 'unknown'
+            const displayUserId = String(record.userId || 'unknown');
+            const truncatedUserId = displayUserId.substring(0, 8) + '...';
+
+            contentDiv.innerHTML = `
+                <div class="p-3 bg-red-50 rounded-lg border border-red-200 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <p class="text-sm font-semibold text-gray-700">作者：<span class="text-red-700">${record.userName} (${record.userClass})</span></p>
+                    <p class="text-sm font-semibold text-gray-700">心情：<span class="text-xl">${record.moodEmoji}</span></p>
+                    <p class="text-sm font-semibold text-gray-700">時間：<span class="text-gray-600">${record.timestampStr.split(' ')[0]}</span></p>
+                    <p class="text-sm font-semibold text-gray-700">發佈 ID：<span class="text-gray-600 font-mono">${truncatedUserId}</span></p>
+                </div>
+                
+                <div class="p-3 border-b border-gray-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-1">
+                        ${starsHtml}
+                    </div>
+                    <span class="text-sm text-gray-600 ml-4">閱讀頁數：${record.startPage} - ${record.endPage} 頁</span>
+                    <span class="text-sm text-red-600 ml-auto flex items-center">
+                        <svg class="w-4 h-4 text-red-500 fill-current mr-1" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        ${record.likes || 0} 個讚
+                    </span>
+                </div>
+
+                <div class="p-3 pt-0">
+                    <h4 class="text-lg font-bold text-gray-800 mb-2 mt-4">閱讀時腦中產生的想法 (全文)：</h4>
+                    <!-- 使用 whitespace-pre-wrap 保留換行 -->
+                    <p class="text-base lg:text-lg text-gray-800 whitespace-pre-wrap p-3 border border-gray-100 rounded-lg bg-gray-50">${record.thoughts}</p>
+                </div>
+                
+                ${commentsDisplayHtml}
+            `;
+
+            // 顯示模態視窗
+            document.getElementById('fullPostModal').classList.remove('hidden');
+        };
+
+        /**
+         * 關閉全文檢視模態視窗
+         */
+        window.closeFullPostModal = () => {
+            document.getElementById('fullPostModal').classList.add('hidden');
+        };
+
+        // --- UI 渲染功能 ---
+
+        /**
+         * 渲染紀錄列表
+         * @param {Array<Object>} recordsToRender - 經過篩選的紀錄列表
+         * @param {string} sortPreference - 排序偏好 ('latest' 或 'likes')
+         */
+        function renderRecords(recordsToRender, sortPreference = 'latest') {
+            const container = document.getElementById('recordsContainer');
+            container.innerHTML = ''; 
+            
+            // --- 排序邏輯 (已修改) ---
+            recordsToRender.sort((a, b) => {
+                if (sortPreference === 'likes') {
+                    // 依讚數排序 (降序: 讚數多的在前)
+                    const likesA = a.likes || 0;
+                    const likesB = b.likes || 0;
+                    if (likesB !== likesA) {
+                         return likesB - likesA;
+                    }
+                    // 讚數相同時，依最新時間排序
+                } 
+                
+                // 依最新時間排序 (預設，或讚數相同時)
+                const dateA = a.timestampDate || new Date(0); 
+                const dateB = b.timestampDate || new Date(0);
+                return dateB.getTime() - dateA.getTime();
+            });
+
+            // --- 過濾隱藏紀錄的邏輯 (只對非管理員生效) ---
+            let displayRecords = recordsToRender;
+            if (userId !== ADMIN_ID) {
+                // 如果不是管理員，則只顯示 hidden 屬性為 false 或不存在的紀錄
+                displayRecords = recordsToRender.filter(record => record.hidden !== true);
+            }
+            // --- 結束過濾邏輯 ---
+
+            if (displayRecords.length === 0) {
+                container.innerHTML = `
+                    <div class="md:col-span-2 text-center text-gray-500 p-8 bg-white rounded-xl shadow-lg">
+                        目前沒有任何打卡紀錄。快成為第一個吧！
+                    </div>
+                `;
+                return;
+            }
+
+            displayRecords.forEach(record => {
+                const cardHtml = createRecordCard(record);
+                container.innerHTML += cardHtml; 
+            });
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if(loadingIndicator) loadingIndicator.remove();
+        }
+
+        /**
+         * 建立單個閱讀紀錄卡片的 HTML (增加點讚狀態判斷)
+         */
+        function createRecordCard(record) {
+            // 星星渲染 (默認為 5 顆星)
+            const rating = record.rating || 5;
+            const stars = Array(5).fill(0).map((_, i) => 
+                `<svg class="w-5 h-5 ${i < rating ? 'text-yellow-400' : 'text-gray-300'} fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.487 7.234l6.561-.955L10 1l2.952 5.279 6.561.955-4.758 4.011 1.123 6.545z"/></svg>`
+            ).join('');
+            
+            // 判斷當前用戶是否已點讚 (根據 likedBy 陣列)
+            const isLiked = (record.likedBy || []).includes(userId);
+            const likeIconClass = isLiked ? 'text-red-500 fill-current' : 'text-gray-400 fill-current hover:text-red-500';
+            const likeButtonClass = isLiked ? 'text-red-500' : 'text-gray-600';
+
+
+            // 只有管理員才顯示刪除和隱形按鈕
+            let adminButtons = '';
+            // 視覺標示：如果文章被隱藏
+            const isHidden = record.hidden === true; 
+            const cardClass = isHidden && userId === ADMIN_ID 
+                ? 'bg-yellow-50 opacity-90 border-yellow-200' // 隱藏時變為淡黃色
+                : 'bg-white border-red-100';
+
+            let hiddenIndicator = '';
+
+            if (userId === ADMIN_ID) {
+                const visibilityText = isHidden ? '顯示' : '隱形';
+                const visibilityColor = isHidden ? 'text-green-600 hover:text-green-800' : 'text-yellow-600 hover:text-yellow-800';
+                // 眼睛圖標
+                const visibilityIcon = isHidden 
+                    ? `<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 4.5c4.71 0 8.8 3.01 10.36 7.5-.02.09-.04.18-.06.27-.12.44-.27.87-.45 1.28l-1.63-1.63c.09-.34.14-.7.14-1.07 0-3.31-2.69-6-6-6s-6 2.69-6 6c0 .37.05.73.14 1.07L4.09 13.06c-.18-.41-.33-.84-.45-1.28C3.2 7.51 7.29 4.5 12 4.5zm0 13c-4.71 0-8.8-3.01-10.36-7.5.02-.09.04-.18.06-.27.12.44.27.87.45 1.28l1.63 1.63c-.09-.34-.14-.7-.14-1.07 0 3.31 2.69 6 6 6s6-2.69 6-6c0-.37-.05-.73-.14-1.07l-1.63-1.63c.18.41.33.84.45 1.28C20.8 17.49 16.71 20.5 12 20.5z"/></svg>` 
+                    : `<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zM12 4.5c4.71 0 8.8 3.01 10.36 7.5-.02.09-.04.18-.06.27-.12.44-.27.87-.45 1.28L21.91 3.59l1.41 1.41L12 18.33 1.45 7.08l1.41-1.41L4.09 7.06c-.18-.41-.33-.84-.45-1.28C3.2 7.51 7.29 4.5 12 4.5zm0 13c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>`; 
+
+                hiddenIndicator = isHidden
+                    ? `<span class="bg-yellow-100 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">已隱藏 (僅管理員可見)</span>`
+                    : '';
+                
+                adminButtons = `
+                    <div class="flex space-x-3">
+                        <!-- NEW: 放大按鈕 (已修正文字) -->
+                        <button onclick="showFullPostModal('${record.id}')"
+                            class="text-blue-600 hover:text-blue-800 font-medium text-sm transition duration-150 flex items-center space-x-1 p-1 rounded hover:bg-blue-50"
+                            title="放大 (更大畫面檢視)">
+                            <!-- Icon: Expand/Zoom -->
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 5L20.49 19l-5-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 10.5H10V12H9V10.5H7.5V9H9V7.5h1V9h2v1.5z"/></svg>
+                            <span>放大</span>
+                        </button>
+
+                        <!-- 隱形/顯示按鈕 -->
+                        <button onclick="handleToggleVisibility('${record.id}', ${isHidden})"
+                            class="${visibilityColor} font-medium text-sm transition duration-150 flex items-center space-x-1 p-1 rounded hover:bg-yellow-100">
+                            ${visibilityIcon}
+                            <span>${visibilityText}</span>
+                        </button>
+                        <!-- 刪除按鈕 -->
+                        <button onclick="handleDelete('${record.id}')"
+                            class="text-red-500 hover:text-red-700 font-medium text-sm transition duration-150 flex items-center space-x-1 p-1 rounded hover:bg-red-50">
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm2.46-7.12l1.41-1.41L12 12.59l2.12-2.12 1.41 1.41L13.41 14l2.12 2.12-1.41 1.41L12 15.41l-2.12 2.12-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4h-3.5z"/></svg>
+                            <span>刪除</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            // 根據 appConfig 決定是否顯示留言按鈕
+            let commentButton = '';
+            if (appConfig.allowComments) {
+                commentButton = `
+                    <button onclick="showCommentModal('${record.id}')"
+                        class="text-blue-500 hover:text-blue-600 font-medium text-sm transition duration-150 flex items-center space-x-1">
+                        <span>新增留言...</span>
+                    </button>
+                `;
+            } else {
+                 commentButton = `
+                    <span class="text-gray-400 font-medium text-sm flex items-center space-x-1 cursor-default">
+                        <span>留言已關閉</span>
+                    </span>
+                `;
+            }
+            
+            // 留言區塊的 HTML 邏輯
+            let commentsHtml = '';
+            if (record.comments && record.comments.length > 0) {
+                
+                // 排序留言：越新的排在越前面
+                const sortedComments = [...record.comments].sort((a, b) => {
+                    const getTimeInMs = (comment) => {
+                        // 檢查時間戳是否為 ISO 字串
+                        if (typeof comment.timestamp === 'string') {
+                            return new Date(comment.timestamp).getTime();
+                        }
+                        return 0;
+                    };
+                    return getTimeInMs(b) - getTimeInMs(a);
+                });
+                
+                commentsHtml = `
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">留言 (${sortedComments.length}):</h4>
+                        <div class="space-y-2 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                            ${sortedComments.map(comment => {
+                                let commentTime = 'N/A';
+                                if (comment.timestamp) {
+                                    let dateObj;
+                                    // 檢查時間戳是否為 ISO 字串
+                                    if (typeof comment.timestamp === 'string') {
+                                        dateObj = new Date(comment.timestamp);
+                                    }
+                                    
+                                    if (dateObj && !isNaN(dateObj)) {
+                                        commentTime = dateObj.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                                    }
+                                }
+                                
+                                // --- NEW: 格式化留言者的 ID (完整 ID) ---
+                                const commenterId = comment.userId || 'unknown';
+                                const displayCommenterId = `用戶 ID: ${commenterId}`; 
+                                // --- 結束 NEW ---
+                                
+                                // 新增：管理員刪除留言按鈕
+                                let deleteCommentButton = '';
+                                if (userId === ADMIN_ID) {
+                                    // 必須將 comment.timestamp 傳遞給刪除函數作為唯一識別碼
+                                    deleteCommentButton = `
+                                        <button onclick="handleDeleteComment('${record.id}', '${comment.timestamp}')"
+                                            class="ml-auto text-xs text-red-400 hover:text-red-600 transition duration-150"
+                                            title="刪除這條留言">
+                                            刪除
+                                        </button>
+                                    `;
+                                }
+
+                                return `
+                                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <div class="flex items-center">
+                                            <p class="text-xs font-bold text-gray-800">${displayCommenterId}
+                                                <span class="font-normal text-gray-400 ml-2">
+                                                    ${commentTime}
+                                                </span>
+                                            </p>
+                                            ${deleteCommentButton}
+                                        </div>
+                                        <p class="text-sm text-gray-700 mt-1 break-words">${comment.text}</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 確保 record.userId 是一個字符串，如果為 null/undefined，則使用 'unknown'
+            const displayUserId = String(record.userId || 'unknown');
+
+            // 主卡片仍使用截斷的作者 ID，以節省空間
+            const truncatedUserId = displayUserId.substring(0, 8) + '...';
+
+
+            return `
+                <div class="${cardClass} p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-300 flex flex-col" data-id="${record.id}">
+                    <!-- Header: 姓名、時間 -->
+                    <div class="flex justify-between items-start mb-4 pb-3 border-b border-gray-100">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-3xl">${record.moodEmoji}</span>
+                            <div>
+                                <p class="font-bold text-gray-800">${record.userName} (${record.userClass})</p>
+                                <p class="text-xs text-gray-400">${record.timestampStr}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            ${hiddenIndicator}
+                            <span class="text-xs font-mono text-gray-400 select-all" title="User ID">用戶 ID: ${truncatedUserId}</span>
+                        </div>
+                    </div>
+
+                    <!-- Book Title & Rating -->
+                    <h3 class="text-xl font-extrabold text-red-600 mb-2">${record.bookTitle}</h3>
+                    <div class="flex items-center space-x-1 mb-3">
+                        ${stars}
+                        <span class="text-xs text-gray-500 ml-2">閱讀頁數：${record.startPage} - ${record.endPage} 頁</span>
+                    </div>
+
+                    <!-- Thoughts 想法內容 -->
+                    <p class="text-gray-800 text-base leading-relaxed mb-4 flex-grow custom-scrollbar overflow-y-auto max-h-40">
+                        ${record.thoughts}
+                    </p>
+
+                    <!-- Actions 動作區 (讚, 隱形, 刪除, 留言) -->
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                        <!-- Like Button -->
+                        <button onclick="handleLike('${record.id}')"
+                            class="flex items-center space-x-1 font-medium ${likeButtonClass} transition duration-150 transform hover:scale-105">
+                            <svg class="w-5 h-5 ${likeIconClass}" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span class="font-semibold">${record.likes || 0}</span>
+                            <span class="text-sm">${isLiked ? '已讚' : '讚'}</span>
+                        </button>
+                        
+                        <!-- Admin and Comment Buttons (Grouped right) -->
+                        <div class="flex items-center space-x-4">
+                            ${adminButtons}
+                            ${commentButton} <!-- 根據配置顯示留言按鈕或狀態 -->
+                        </div>
+                    </div>
+                    
+                    <!-- Comments Display Area -->
+                    ${commentsHtml}
+                </div>
+            `;
+        }
+
+        /**
+         * 輔助函數：清除篩選條件
+         */
+        window.clearFilters = () => {
+            const nameInput = document.getElementById('nameFilterInput');
+            const bookInput = document.getElementById('bookTitleFilterInput');
+            const classSelect = document.getElementById('classFilterSelect'); 
+            const timeSelect = document.getElementById('timeFilterSelect'); 
+            const sortSelect = document.getElementById('sortSelect'); // <-- 新增
+            
+            // 清空輸入框
+            if (nameInput) nameInput.value = '';
+            if (bookInput) bookInput.value = '';
+            
+            // 重置下拉選單
+            if (classSelect) classSelect.value = '';
+            if (timeSelect) timeSelect.value = 'all'; 
+            if (sortSelect) sortSelect.value = 'latest'; // <-- 重設為依最新排序
+
+            // 重新渲染全部紀錄
+            filterAndRender();
+        }
+
+    </script>
+</body>
+</html>
+
+
+
