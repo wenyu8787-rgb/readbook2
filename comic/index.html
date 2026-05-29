@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水滸傳漫畫電子書</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="reader" aria-label="水滸傳漫畫電子書閱讀器">
+    <header class="topbar">
+      <div class="book-title">
+        <span class="series">水滸傳</span>
+        <strong>林沖逼上梁山</strong>
+      </div>
+      <div class="page-status" aria-live="polite">
+        <span id="pageLabel">第 1 頁</span>
+        <span class="divider"></span>
+        <span id="themeLabel">汴京暗影</span>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="漫畫頁面">
+      <button class="nav-button prev" id="prevPage" type="button" aria-label="上一頁">
+        <span aria-hidden="true">‹</span>
+      </button>
+
+      <div class="book-shell">
+        <div class="book" id="book">
+          <img id="pageImage" src="pages/page-01.png" alt="第 1 頁：汴京暗影" draggable="false">
+        </div>
+      </div>
+
+      <button class="nav-button next" id="nextPage" type="button" aria-label="下一頁">
+        <span aria-hidden="true">›</span>
+      </button>
+    </section>
+
+    <footer class="controls">
+      <button class="icon-button" id="firstPage" type="button" aria-label="第一頁">«</button>
+      <button class="text-button" id="toggleSpread" type="button" aria-pressed="false">單頁</button>
+      <input id="pageSlider" type="range" min="1" max="30" value="1" aria-label="頁數">
+      <button class="icon-button" id="lastPage" type="button" aria-label="最後一頁">»</button>
+    </footer>
+
+    <nav class="thumbs" id="thumbs" aria-label="頁面縮圖"></nav>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
